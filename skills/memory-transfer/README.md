@@ -21,22 +21,31 @@ MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/
 
 ## Standalone Install
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```text
+请安装 memory-transfer skill。
+安装来源是 GitHub 仓库 `youhan2021/memory-transfer` 的根目录安装脚本 `install-skill.sh`。
+安装时请让我输入两项配置：
+1. Skill install directory
+2. MEMORY_TRANSFER_SERVER_URL
 ```
 
 During install, the script will ask for `MEMORY_TRANSFER_SERVER_URL` and save it to `config.env`.
 It will also ask for the skill install directory, instead of assuming an OpenClaw-only path.
-You can also pass it non-interactively:
+Hermes 场景可直接使用这个 prompt：
 
-```bash
-MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```text
+请安装 memory-transfer skill。
+安装来源是 GitHub 仓库 `youhan2021/memory-transfer` 的根目录安装脚本 `install-skill.sh`。
+Skill install directory 请填写 `~/.hermes/skills`。
+MEMORY_TRANSFER_SERVER_URL 请按当前环境填写。
 ```
 
-To preseed both values:
+如果已经在本地仓库中，也可以这样告诉 agent：
 
-```bash
-MEMORY_TRANSFER_SKILLS_DIR=~/.hermes/skills MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```text
+请安装当前仓库里的 memory-transfer skill，并在安装时让我输入：
+1. Skill install directory
+2. MEMORY_TRANSFER_SERVER_URL
 ```
 
 Supported modes:

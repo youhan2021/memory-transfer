@@ -23,39 +23,40 @@ There are now two different install paths:
 
 The skill is intended to be installable on its own, without cloning the full monorepo.
 
-Recommended remote install command:
+Recommended install prompt:
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```text
+请安装 memory-transfer skill。
+安装来源是 GitHub 仓库 `youhan2021/memory-transfer` 的根目录安装脚本 `install-skill.sh`。
+安装时请让我输入两项配置：
+1. Skill install directory
+2. MEMORY_TRANSFER_SERVER_URL
 ```
 
-The installer will ask for `MEMORY_TRANSFER_SERVER_URL` and write it into the installed skill's `config.env`.
-It will also ask for the target skill install directory, so Hermes/OpenClaw users can choose the correct runtime skills path.
-You can also preseed it:
+If you want Hermes-style install, use this prompt:
 
-```bash
-MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```text
+请安装 memory-transfer skill。
+安装来源是 GitHub 仓库 `youhan2021/memory-transfer` 的根目录安装脚本 `install-skill.sh`。
+Skill install directory 请填写 `~/.hermes/skills`。
+MEMORY_TRANSFER_SERVER_URL 请按当前环境填写。
 ```
 
-Or preseed both values:
+If you already cloned this repo locally, ask the agent to run the local skill installer and let you input:
 
-```bash
-MEMORY_TRANSFER_SKILLS_DIR=~/.hermes/skills MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
-```
-
-If you already cloned this repo locally, run:
-
-```bash
-./install-skill.sh
+```text
+请安装当前仓库里的 memory-transfer skill，并在安装时让我输入：
+1. Skill install directory
+2. MEMORY_TRANSFER_SERVER_URL
 ```
 
 Supported skill install modes:
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
-bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh) --copy
-./install-skill.sh --link
-./install-skill.sh --copy
+```text
+- 远程安装仓库里的 skill
+- 远程安装并复制 skill
+- 本地 link 安装
+- 本地 copy 安装
 ```
 
 That installer only does one thing:
