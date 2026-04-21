@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,10 +17,35 @@ DEFAULT_EXPORT_TYPES = {
 }
 DEFAULT_EXCLUDED_TYPES = {"temporary"}
 TEXT_EXTENSIONS = {".md", ".txt"}
+LOCAL_ONLY_PATTERNS = (
+    re.compile(r"\bdevice id\b"),
+    re.compile(r"\blocalhost-only\b"),
+    re.compile(r"\blocal path\b"),
+    re.compile(r"\bcache\b"),
+    re.compile(r"(?:^|\s)(?:/tmp/|/var/tmp/|~/\.cache/)\S*"),
+)
+NEGATION_MARKERS = ("not ", "not a ", "not the ", "不是", "并非", "不要", "no ")
 
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def is_negated_match(content: str, start: int) -> bool:
+    context = content[max(0, start - 12):start].strip()
+    return any(context.endswith(marker.strip()) for marker in NEGATION_MARKERS)
+
+
+def looks_like_local_only_content(content: str) -> bool:
+    lowered = content.lower()
+    for pattern in LOCAL_ONLY_PATTERNS:
+        match = pattern.search(lowered)
+        if not match:
+            continue
+        if is_negated_match(lowered, match.start()):
+            continue
+        return True
+    return False
 
 
 def guess_memory_type(path: Path, content: str) -> str:
@@ -55,9 +81,7 @@ def memory_from_text_file(path: Path) -> dict:
 
     inferred_type = guess_memory_type(path, content)
     lowered = content.lower()
-    transferable = not any(
-        token in lowered for token in ("cache", "/tmp", "device id", "localhost-only")
-    )
+    transferable = not looks_like_local_only_content(lowered)
     return {
         "id": make_memory_id(path, content),
         "type": inferred_type,
@@ -110,7 +134,7 @@ def filter_memories(bundle: dict, include_types: set[str] | None = None) -> dict
             continue
         if memory_type not in include_types:
             continue
-        if any(token in content for token in ("cache", "/tmp", "local path", "device id")):
+        if looks_like_local_only_content(content):
             continue
         filtered.append(memory)
 

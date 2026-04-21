@@ -70,3 +70,23 @@ def test_export_memory_generates_bundle_from_markdown(tmp_path: Path) -> None:
     assert len(payload["memories"]) == 1
     assert payload["memories"][0]["title"] == "2026 04 18 moyu threebody"
     assert payload["memories"][0]["transferable"] is True
+
+
+def test_export_memory_does_not_drop_negative_tmp_reference(tmp_path: Path) -> None:
+    source = tmp_path / "MEMORY.md"
+    source.write_text(
+        "这里记录的是稳定记忆，不是 /tmp/ 目录，也不是临时缓存。",
+        encoding="utf-8",
+    )
+
+    script = Path(__file__).resolve().parents[1] / "scripts/export_memory.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--source", str(source)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(result.stdout)
+    assert len(payload["memories"]) == 1
+    assert payload["memories"][0]["transferable"] is True
