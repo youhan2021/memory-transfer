@@ -64,6 +64,20 @@ class BundleStore:
             bundle=None if preview_only else record.bundle,
         )
 
+    def fetch_transfer_by_short_code(
+        self,
+        short_code: str,
+        preview_only: bool = True,
+    ) -> TransferFetchResponse:
+        record = self._get_active_record_by_short_code(short_code)
+        return TransferFetchResponse(
+            transfer_id=record.transfer_id,
+            expires_at=record.expires_at,
+            consumed=record.consumed,
+            preview=record.preview(),
+            bundle=None if preview_only else record.bundle,
+        )
+
     def consume_transfer(self, transfer_id: str) -> TransferRecord:
         record = self._get_active_record(transfer_id, allow_consumed=True)
         if not record.consumed:
@@ -101,6 +115,21 @@ class BundleStore:
         if record.consume_once and record.consumed and not allow_consumed:
             raise TransferUnavailableError(f"transfer {transfer_id} already consumed")
         return record
+
+    def _get_active_record_by_short_code(
+        self,
+        short_code: str,
+        allow_consumed: bool = False,
+    ) -> TransferRecord:
+        self.cleanup_expired()
+        for record in self._records.values():
+            if record.short_code == short_code:
+                if record.consume_once and record.consumed and not allow_consumed:
+                    raise TransferUnavailableError(
+                        f"transfer with short code {short_code} already consumed"
+                    )
+                return record
+        raise TransferNotFoundError(f"transfer with short code {short_code} not found")
 
     def _persist_record(self, record: TransferRecord) -> None:
         snapshot_path = self.data_dir / f"{record.transfer_id}.json"

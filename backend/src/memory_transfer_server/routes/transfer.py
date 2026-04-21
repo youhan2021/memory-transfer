@@ -4,6 +4,7 @@ from memory_transfer_server.models import (
     ConsumeResponse,
     TransferCreateRequest,
     TransferCreateResponse,
+    TransferFetchRequest,
     TransferFetchResponse,
 )
 from memory_transfer_server.services.bundle_store import (
@@ -35,6 +36,48 @@ def fetch_transfer(
     store = request.app.state.bundle_store
     try:
         return store.fetch_transfer(transfer_id, preview_only=preview)
+    except TransferNotFoundError as exc:
+        try:
+            return store.fetch_transfer_by_short_code(transfer_id, preview_only=preview)
+        except TransferNotFoundError:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TransferUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+
+
+@router.get("/code/{short_code}", response_model=TransferFetchResponse)
+@router.get("/short/{short_code}", response_model=TransferFetchResponse)
+def fetch_transfer_by_short_code(
+    short_code: str,
+    request: Request,
+    preview: bool = Query(default=True),
+) -> TransferFetchResponse:
+    store = request.app.state.bundle_store
+    try:
+        return store.fetch_transfer_by_short_code(short_code, preview_only=preview)
+    except TransferNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TransferUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+
+
+@router.post("/fetch", response_model=TransferFetchResponse)
+def fetch_transfer_post(
+    payload: TransferFetchRequest,
+    request: Request,
+) -> TransferFetchResponse:
+    lookup_value = payload.transfer_id or payload.short_code or payload.code
+    if not lookup_value:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="one of transfer_id, short_code, or code is required",
+        )
+
+    store = request.app.state.bundle_store
+    try:
+        if payload.transfer_id:
+            return store.fetch_transfer(payload.transfer_id, preview_only=payload.preview)
+        return store.fetch_transfer_by_short_code(lookup_value, preview_only=payload.preview)
     except TransferNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except TransferUnavailableError as exc:

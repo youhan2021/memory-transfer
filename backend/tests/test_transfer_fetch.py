@@ -42,6 +42,31 @@ def test_fetch_preview_and_full_bundle() -> None:
     assert full_response.json()["bundle"]["source_agent"] == "unit-test-source"
 
 
+def test_fetch_by_short_code_aliases() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/transfer/create",
+            json={"bundle": sample_bundle(), "ttl_seconds": 3600, "consume_once": True},
+        )
+        payload = create_response.json()
+        short_code = payload["short_code"]
+
+        by_root = client.get(f"/transfer/{short_code}")
+        by_code = client.get(f"/transfer/code/{short_code}")
+        by_short = client.get(f"/transfer/short/{short_code}")
+        by_post = client.post("/transfer/fetch", json={"code": short_code, "preview": True})
+
+    assert by_root.status_code == 200
+    assert by_root.json()["transfer_id"] == payload["transfer_id"]
+    assert by_code.status_code == 200
+    assert by_code.json()["transfer_id"] == payload["transfer_id"]
+    assert by_short.status_code == 200
+    assert by_short.json()["transfer_id"] == payload["transfer_id"]
+    assert by_post.status_code == 200
+    assert by_post.json()["transfer_id"] == payload["transfer_id"]
+
+
 def test_consume_blocks_future_fetch_for_one_time_transfer() -> None:
     app = create_app()
     with TestClient(app) as client:

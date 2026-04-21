@@ -77,6 +77,13 @@ class TransferFetchResponse(BaseModel):
     bundle: MemoryBundle | None = None
 
 
+class TransferFetchRequest(BaseModel):
+    transfer_id: str | None = None
+    short_code: str | None = None
+    code: str | None = None
+    preview: bool = True
+
+
 class ConsumeResponse(BaseModel):
     transfer_id: str
     consumed: bool
