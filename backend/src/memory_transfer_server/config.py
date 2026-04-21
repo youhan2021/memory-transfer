@@ -8,9 +8,8 @@ from pathlib import Path
 @dataclass(slots=True)
 class Settings:
     data_dir: Path
-    default_ttl_seconds: int = 3600
+    default_ttl_seconds: int = 600
     max_ttl_seconds: int = 604800
-    consume_once_default: bool = True
 
 
 def get_settings() -> Settings:
@@ -23,11 +22,7 @@ def get_settings() -> Settings:
     return Settings(
         data_dir=data_dir,
         default_ttl_seconds=int(
-            os.getenv("MEMORY_TRANSFER_DEFAULT_TTL_SECONDS", "3600")
+            os.getenv("MEMORY_TRANSFER_DEFAULT_TTL_SECONDS", "600")
         ),
         max_ttl_seconds=int(os.getenv("MEMORY_TRANSFER_MAX_TTL_SECONDS", "604800")),
-        consume_once_default=os.getenv(
-            "MEMORY_TRANSFER_CONSUME_ONCE_DEFAULT", "true"
-        ).lower()
-        in {"1", "true", "yes"},
     )

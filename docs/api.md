@@ -22,7 +22,7 @@ Example response:
 
 ## `POST /transfer/create`
 
-Creates a temporary transfer from a memory bundle.
+Creates a temporary transfer session from a memory bundle.
 
 Request body:
 
@@ -34,8 +34,7 @@ Request body:
     "exported_at": "2026-04-21T00:00:00Z",
     "memories": []
   },
-  "ttl_seconds": 3600,
-  "consume_once": true
+  "ttl_seconds": 600
 }
 ```
 
@@ -44,21 +43,77 @@ Response body:
 ```json
 {
   "transfer_id": "tr_xxx",
-  "expires_at": "2026-04-21T01:00:00Z",
-  "short_code": "ABC123",
-  "qr_payload": "memory-transfer://fetch?transfer_id=tr_xxx&code=ABC123",
-  "consume_once": true
+  "short_code": "mango-river-27",
+  "confirm_phrase": "silver bamboo",
+  "expires_at": "2026-04-21T00:10:00Z"
 }
 ```
 
-## `GET /transfer/{transfer_id}`
+## `POST /transfer/lookup`
 
-Query parameters:
+Looks up a transfer session by short code and returns preview only.
 
-- `preview=true|false`
+Request body:
 
-Preview mode returns bundle metadata and lightweight item summaries. Full mode returns the actual bundle.
+```json
+{
+  "short_code": "mango-river-27"
+}
+```
 
-## `POST /transfer/{transfer_id}/consume`
+Response body:
 
-Marks a transfer as consumed. One-time transfers will not be fetchable after consumption.
+```json
+{
+  "transfer_id": "tr_xxx",
+  "short_code": "mango-river-27",
+  "status": "pending",
+  "preview": {
+    "source_agent": "hermes",
+    "exported_at": "2026-04-21T00:00:00Z",
+    "expires_at": "2026-04-21T00:10:00Z",
+    "memory_count": 15,
+    "memory_type_counts": {
+      "preference": 12,
+      "workflow": 3
+    },
+    "requires_confirm_phrase": true
+  }
+}
+```
+
+The lookup response does not return full memory content.
+
+## `POST /transfer/confirm-import`
+
+Confirms a transfer with short code plus confirm phrase.
+
+Request body:
+
+```json
+{
+  "short_code": "mango-river-27",
+  "confirm_phrase": "silver bamboo",
+  "import_mode": "upsert"
+}
+```
+
+Response body:
+
+```json
+{
+  "transfer_id": "tr_xxx",
+  "short_code": "mango-river-27",
+  "status": "consumed",
+  "import_mode": "upsert",
+  "consumed_at": "2026-04-21T00:03:00Z",
+  "bundle": {
+    "version": "1.0",
+    "source_agent": "hermes",
+    "exported_at": "2026-04-21T00:00:00Z",
+    "memories": []
+  }
+}
+```
+
+After `confirm-import` succeeds, the transfer session is consumed and cannot be used again.

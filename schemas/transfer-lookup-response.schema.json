@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memory-transfer.local/schemas/transfer-lookup-response.schema.json",
+  "title": "TransferLookupResponse",
+  "type": "object",
+  "required": ["transfer_id", "short_code", "status", "preview"],
+  "properties": {
+    "transfer_id": { "type": "string" },
+    "short_code": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "consumed", "expired"]
+    },
+    "preview": {
+      "type": "object",
+      "required": [
+        "source_agent",
+        "exported_at",
+        "expires_at",
+        "memory_count",
+        "memory_type_counts",
+        "requires_confirm_phrase"
+      ],
+      "properties": {
+        "source_agent": { "type": "string" },
+        "exported_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "memory_count": { "type": "integer" },
+        "memory_type_counts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "requires_confirm_phrase": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

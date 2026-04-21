@@ -5,14 +5,15 @@ from datetime import timedelta
 from pathlib import Path
 
 from memory_transfer_server.models import (
-    MemoryBundle,
+    TransferConfirmImportRequest,
+    TransferConfirmImportResponse,
     TransferCreateRequest,
-    TransferFetchResponse,
+    TransferLookupResponse,
     TransferRecord,
     utc_now,
 )
 from memory_transfer_server.services.token_service import (
-    build_qr_payload,
+    generate_confirm_phrase,
     generate_short_code,
     generate_transfer_id,
 )
@@ -26,6 +27,10 @@ class TransferUnavailableError(RuntimeError):
     pass
 
 
+class TransferConfirmationError(ValueError):
+    pass
+
+
 class BundleStore:
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
@@ -34,101 +39,110 @@ class BundleStore:
 
     def create_transfer(self, request: TransferCreateRequest) -> dict[str, object]:
         now = utc_now()
-        transfer_id = generate_transfer_id()
-        short_code = generate_short_code()
         record = TransferRecord(
-            transfer_id=transfer_id,
-            short_code=short_code,
-            bundle=request.bundle,
+            transfer_id=self._unique_transfer_id(),
+            short_code=self._unique_short_code(),
+            confirm_phrase=generate_confirm_phrase(),
             created_at=now,
             expires_at=now + timedelta(seconds=request.ttl_seconds),
-            consume_once=request.consume_once,
+            source_agent=request.bundle.source_agent,
+            bundle=request.bundle,
         )
-        self._records[transfer_id] = record
+        self._records[record.transfer_id] = record
         self._persist_record(record)
         return {
-            "transfer_id": transfer_id,
+            "transfer_id": record.transfer_id,
+            "short_code": record.short_code,
+            "confirm_phrase": record.confirm_phrase,
             "expires_at": record.expires_at,
-            "short_code": short_code,
-            "qr_payload": build_qr_payload(transfer_id, short_code),
-            "consume_once": record.consume_once,
         }
 
-    def fetch_transfer(self, transfer_id: str, preview_only: bool = True) -> TransferFetchResponse:
-        record = self._get_active_record(transfer_id)
-        return TransferFetchResponse(
+    def lookup_transfer(self, short_code: str) -> TransferLookupResponse:
+        record = self._get_pending_record_by_short_code(short_code)
+        return TransferLookupResponse(
             transfer_id=record.transfer_id,
-            expires_at=record.expires_at,
-            consumed=record.consumed,
+            short_code=record.short_code,
+            status=record.status,
             preview=record.preview(),
-            bundle=None if preview_only else record.bundle,
         )
 
-    def fetch_transfer_by_short_code(
+    def confirm_import(
         self,
-        short_code: str,
-        preview_only: bool = True,
-    ) -> TransferFetchResponse:
-        record = self._get_active_record_by_short_code(short_code)
-        return TransferFetchResponse(
+        request: TransferConfirmImportRequest,
+    ) -> TransferConfirmImportResponse:
+        record = self._get_pending_record_by_short_code(request.short_code)
+        if record.confirm_phrase != request.confirm_phrase:
+            raise TransferConfirmationError("confirm phrase did not match")
+
+        record.status = "consumed"
+        record.consumed_at = utc_now()
+        self._persist_record(record)
+        return TransferConfirmImportResponse(
             transfer_id=record.transfer_id,
-            expires_at=record.expires_at,
-            consumed=record.consumed,
-            preview=record.preview(),
-            bundle=None if preview_only else record.bundle,
+            short_code=record.short_code,
+            status=record.status,
+            import_mode=request.import_mode,
+            consumed_at=record.consumed_at,
+            bundle=record.bundle,
         )
 
     def consume_transfer(self, transfer_id: str) -> TransferRecord:
-        record = self._get_active_record(transfer_id, allow_consumed=True)
-        if not record.consumed:
-            record.consumed = True
-            record.consumed_at = utc_now()
+        record = self._get_record(transfer_id)
+        if record.status == "consumed" and record.consumed_at is not None:
+            return record
+        if record.is_expired():
+            record.status = "expired"
             self._persist_record(record)
+            raise TransferUnavailableError(f"transfer {transfer_id} expired")
+
+        record.status = "consumed"
+        record.consumed_at = utc_now()
+        self._persist_record(record)
         return record
 
     def cleanup_expired(self) -> int:
-        expired_ids = [
-            transfer_id
-            for transfer_id, record in self._records.items()
-            if record.is_expired()
-        ]
-        for transfer_id in expired_ids:
-            del self._records[transfer_id]
-            snapshot = self.data_dir / f"{transfer_id}.json"
-            if snapshot.exists():
-                snapshot.unlink()
-        return len(expired_ids)
+        updated = 0
+        for record in self._records.values():
+            if record.status == "pending" and record.is_expired():
+                record.status = "expired"
+                self._persist_record(record)
+                updated += 1
+        return updated
 
     def active_count(self) -> int:
         self.cleanup_expired()
-        return len(self._records)
+        return sum(1 for record in self._records.values() if record.status == "pending")
 
-    def _get_active_record(
-        self,
-        transfer_id: str,
-        allow_consumed: bool = False,
-    ) -> TransferRecord:
+    def _unique_transfer_id(self) -> str:
+        while True:
+            candidate = generate_transfer_id()
+            if candidate not in self._records:
+                return candidate
+
+    def _unique_short_code(self) -> str:
+        existing_codes = {record.short_code for record in self._records.values()}
+        while True:
+            candidate = generate_short_code()
+            if candidate not in existing_codes:
+                return candidate
+
+    def _get_record(self, transfer_id: str) -> TransferRecord:
         self.cleanup_expired()
         record = self._records.get(transfer_id)
         if record is None:
             raise TransferNotFoundError(f"transfer {transfer_id} not found")
-        if record.consume_once and record.consumed and not allow_consumed:
-            raise TransferUnavailableError(f"transfer {transfer_id} already consumed")
         return record
 
-    def _get_active_record_by_short_code(
-        self,
-        short_code: str,
-        allow_consumed: bool = False,
-    ) -> TransferRecord:
+    def _get_pending_record_by_short_code(self, short_code: str) -> TransferRecord:
         self.cleanup_expired()
         for record in self._records.values():
-            if record.short_code == short_code:
-                if record.consume_once and record.consumed and not allow_consumed:
-                    raise TransferUnavailableError(
-                        f"transfer with short code {short_code} already consumed"
-                    )
-                return record
+            if record.short_code != short_code:
+                continue
+            if record.status == "expired":
+                raise TransferUnavailableError(f"transfer with short code {short_code} expired")
+            if record.status == "consumed":
+                raise TransferUnavailableError(f"transfer with short code {short_code} already consumed")
+            return record
         raise TransferNotFoundError(f"transfer with short code {short_code} not found")
 
     def _persist_record(self, record: TransferRecord) -> None:

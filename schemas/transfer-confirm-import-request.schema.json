@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memory-transfer.local/schemas/transfer-confirm-import-request.schema.json",
+  "title": "TransferConfirmImportRequest",
+  "type": "object",
+  "required": ["short_code", "confirm_phrase", "import_mode"],
+  "properties": {
+    "short_code": { "type": "string" },
+    "confirm_phrase": { "type": "string" },
+    "import_mode": {
+      "type": "string",
+      "enum": ["append", "replace", "upsert"]
+    }
+  },
+  "additionalProperties": false
+}

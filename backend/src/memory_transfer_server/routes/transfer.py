@@ -1,13 +1,16 @@
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from memory_transfer_server.models import (
     ConsumeResponse,
+    TransferConfirmImportRequest,
+    TransferConfirmImportResponse,
     TransferCreateRequest,
     TransferCreateResponse,
-    TransferFetchRequest,
-    TransferFetchResponse,
+    TransferLookupRequest,
+    TransferLookupResponse,
 )
 from memory_transfer_server.services.bundle_store import (
+    TransferConfirmationError,
     TransferNotFoundError,
     TransferUnavailableError,
 )
@@ -27,61 +30,34 @@ def create_transfer(
     return TransferCreateResponse(**store.create_transfer(normalized_payload))
 
 
-@router.get("/{transfer_id}", response_model=TransferFetchResponse)
-def fetch_transfer(
-    transfer_id: str,
+@router.post("/lookup", response_model=TransferLookupResponse)
+def lookup_transfer(
+    payload: TransferLookupRequest,
     request: Request,
-    preview: bool = Query(default=True),
-) -> TransferFetchResponse:
+) -> TransferLookupResponse:
     store = request.app.state.bundle_store
     try:
-        return store.fetch_transfer(transfer_id, preview_only=preview)
-    except TransferNotFoundError as exc:
-        try:
-            return store.fetch_transfer_by_short_code(transfer_id, preview_only=preview)
-        except TransferNotFoundError:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except TransferUnavailableError as exc:
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
-
-
-@router.get("/code/{short_code}", response_model=TransferFetchResponse)
-@router.get("/short/{short_code}", response_model=TransferFetchResponse)
-def fetch_transfer_by_short_code(
-    short_code: str,
-    request: Request,
-    preview: bool = Query(default=True),
-) -> TransferFetchResponse:
-    store = request.app.state.bundle_store
-    try:
-        return store.fetch_transfer_by_short_code(short_code, preview_only=preview)
+        return store.lookup_transfer(payload.short_code)
     except TransferNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except TransferUnavailableError as exc:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
 
 
-@router.post("/fetch", response_model=TransferFetchResponse)
-def fetch_transfer_post(
-    payload: TransferFetchRequest,
+@router.post("/confirm-import", response_model=TransferConfirmImportResponse)
+def confirm_import(
+    payload: TransferConfirmImportRequest,
     request: Request,
-) -> TransferFetchResponse:
-    lookup_value = payload.transfer_id or payload.short_code or payload.code
-    if not lookup_value:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="one of transfer_id, short_code, or code is required",
-        )
-
+) -> TransferConfirmImportResponse:
     store = request.app.state.bundle_store
     try:
-        if payload.transfer_id:
-            return store.fetch_transfer(payload.transfer_id, preview_only=payload.preview)
-        return store.fetch_transfer_by_short_code(lookup_value, preview_only=payload.preview)
+        return store.confirm_import(payload)
     except TransferNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except TransferUnavailableError as exc:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+    except TransferConfirmationError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
 
 @router.post("/{transfer_id}/consume", response_model=ConsumeResponse)
@@ -91,6 +67,8 @@ def consume_transfer(transfer_id: str, request: Request) -> ConsumeResponse:
         record = store.consume_transfer(transfer_id)
     except TransferNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TransferUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
     if record.consumed_at is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -98,6 +76,6 @@ def consume_transfer(transfer_id: str, request: Request) -> ConsumeResponse:
         )
     return ConsumeResponse(
         transfer_id=record.transfer_id,
-        consumed=record.consumed,
+        status=record.status,
         consumed_at=record.consumed_at,
     )

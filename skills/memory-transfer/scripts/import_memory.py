@@ -72,6 +72,28 @@ def write_file_target(path: Path, memories: list[dict]) -> None:
     path.write_text(json.dumps({"memories": memories}, indent=2) + "\n", encoding="utf-8")
 
 
+def import_bundle_to_target(bundle: dict, raw_target: str, mode: str) -> dict[str, object]:
+    target_path = Path(raw_target).expanduser().resolve()
+    incoming = bundle.get("memories", [])
+    existing = load_target(target_path)
+    merged = apply_import(existing, incoming, mode)
+
+    target_is_directory = directory_mode_requested(target_path, raw_target)
+    if target_is_directory:
+        write_directory_target(target_path, merged, mode)
+    else:
+        write_file_target(target_path, merged)
+
+    return {
+        "target": str(target_path),
+        "target_mode": "directory" if target_is_directory else "json_file",
+        "mode": mode,
+        "existing_count": len(existing),
+        "incoming_count": len(incoming),
+        "result_count": len(merged),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import a memory bundle into a local target file.")
     parser.add_argument("--bundle", required=True, help="Path to bundle JSON")
@@ -89,33 +111,9 @@ def main() -> None:
     args = parser.parse_args()
 
     bundle_path = Path(args.bundle).expanduser().resolve()
-    raw_target = args.target
-    target_path = Path(raw_target).expanduser().resolve()
-
     bundle = load_bundle(bundle_path)
-    incoming = bundle.get("memories", [])
-    existing = load_target(target_path)
-    merged = apply_import(existing, incoming, args.mode)
-
-    target_is_directory = directory_mode_requested(target_path, raw_target)
-    if target_is_directory:
-        write_directory_target(target_path, merged, args.mode)
-    else:
-        write_file_target(target_path, merged)
-
-    print(
-        json.dumps(
-            {
-                "target": str(target_path),
-                "target_mode": "directory" if target_is_directory else "json_file",
-                "mode": args.mode,
-                "existing_count": len(existing),
-                "incoming_count": len(incoming),
-                "result_count": len(merged),
-            },
-            indent=2,
-        )
-    )
+    summary = import_bundle_to_target(bundle, args.target, args.mode)
+    print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

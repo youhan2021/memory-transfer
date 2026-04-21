@@ -1,8 +1,8 @@
 # memory-transfer
 
-`memory-transfer` is a low-friction MVP for selective agent memory export and import. It is intentionally not an account system, not a sync engine, and not a long-term cloud storage product. The goal is a minimal `export -> preview -> import -> consume` loop that works well with QR payloads, short codes, and a temporary relay backend.
+`memory-transfer` is a low-friction MVP for selective agent memory export and import. It is intentionally not an account system, not a sync engine, and not a long-term cloud storage product. The goal is a minimal `export -> lookup preview -> confirm import` loop built around short codes plus confirm phrases and a temporary relay backend.
 
-`memory-transfer` 是一个低摩擦的 agent 记忆导出与导入 MVP。它不是账户系统，不是同步引擎，也不是长期云存储产品。目标是提供一个最小化的 `export -> preview -> import -> consume` 闭环，并优先支持二维码 payload、短码和临时中转后端。
+`memory-transfer` 是一个低摩擦的 agent 记忆导出与导入 MVP。它不是账户系统，不是同步引擎，也不是长期云存储产品。目标是提供一个最小化的 `export -> lookup preview -> confirm import` 闭环，并基于短码 + 确认短语与临时中转后端完成配对。
 
 ## Project Goal | 项目目标
 
@@ -167,8 +167,8 @@ Available MVP endpoints:
 
 - `GET /health`
 - `POST /transfer/create`
-- `GET /transfer/{transfer_id}`
-- `POST /transfer/{transfer_id}/consume`
+- `POST /transfer/lookup`
+- `POST /transfer/confirm-import`
 
 ## Skill Install Location | Skill 安装位置
 
@@ -190,19 +190,19 @@ Default installed path:
 
 ## Basic Flow | 基本流程
 
-1. Export memories from a source file with `skills/memory-transfer/scripts/export_memory.py`
-2. Create a bundle and send it to the backend with `POST /transfer/create`
-3. Share the returned `transfer_id`, short code, or QR payload
-4. Preview from the target side before importing
-5. Import with `append`, `replace`, or `upsert`
-6. Optionally call consume for one-time transfer semantics
+1. Export memories from a source file
+2. Create a transfer session with `POST /transfer/create`
+3. Share the returned `short_code` and `confirm_phrase`
+4. On the target side, call `POST /transfer/lookup` with the short code
+5. Show preview only and ask for the confirm phrase
+6. Call `POST /transfer/confirm-import` with `short_code + confirm_phrase`
 
-1. 使用 `skills/memory-transfer/scripts/export_memory.py` 从源文件导出记忆
-2. 创建 bundle 并通过 `POST /transfer/create` 发送到 backend
-3. 分享返回的 `transfer_id`、短码或二维码 payload
-4. 在目标端导入前先 preview
-5. 使用 `append`、`replace` 或 `upsert` 模式导入
-6. 如有需要，可调用 consume 实现一次性传输语义
+1. 从源文件导出记忆
+2. 通过 `POST /transfer/create` 创建 transfer session
+3. 分享返回的 `short_code` 和 `confirm_phrase`
+4. 在目标端用短码调用 `POST /transfer/lookup`
+5. 只展示 preview，并要求用户输入确认短语
+6. 用 `short_code + confirm_phrase` 调用 `POST /transfer/confirm-import`
 
 ## Uninstall Or Reinstall | 卸载或重装
 

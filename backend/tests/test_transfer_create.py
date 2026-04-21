@@ -22,17 +22,17 @@ def sample_bundle() -> dict[str, object]:
     }
 
 
-def test_create_transfer_returns_identifiers() -> None:
+def test_create_transfer_returns_short_code_and_confirm_phrase() -> None:
     app = create_app()
     with TestClient(app) as client:
         response = client.post(
             "/transfer/create",
-            json={"bundle": sample_bundle(), "ttl_seconds": 3600, "consume_once": True},
+            json={"bundle": sample_bundle(), "ttl_seconds": 600},
         )
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["transfer_id"].startswith("tr_")
-    assert len(payload["short_code"]) == 6
-    assert payload["qr_payload"].startswith("memory-transfer://fetch")
-    assert payload["consume_once"] is True
+    assert "-" in payload["short_code"]
+    assert " " in payload["confirm_phrase"]
+    assert "qr_payload" not in payload

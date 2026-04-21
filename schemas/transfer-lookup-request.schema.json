@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memory-transfer.local/schemas/transfer-lookup-request.schema.json",
+  "title": "TransferLookupRequest",
+  "type": "object",
+  "required": ["short_code"],
+  "properties": {
+    "short_code": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

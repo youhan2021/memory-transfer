@@ -6,8 +6,9 @@ This FastAPI service provides a temporary relay for memory bundles.
 
 - in-memory store with optional local JSON snapshot persistence
 - TTL expiration
-- preview fetch
-- one-time consume support
+- short code plus confirm phrase pairing
+- preview lookup without exposing full memory content
+- one-time confirm-import consumption
 
 ## Development
 

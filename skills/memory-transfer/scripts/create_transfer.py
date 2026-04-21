@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
 from pathlib import Path
 from urllib import request
 
@@ -23,20 +24,10 @@ def build_bundle(args: argparse.Namespace) -> dict:
     return filter_memories(bundle, include_types=include_types)
 
 
-def post_create_transfer(
-    bundle: dict,
-    ttl_seconds: int,
-    consume_once: bool,
-) -> dict:
+def post_create_transfer(bundle: dict, ttl_seconds: int) -> dict:
     server_url = get_server_url()
     endpoint = server_url.rstrip("/") + "/transfer/create"
-    payload = json.dumps(
-        {
-            "bundle": bundle,
-            "ttl_seconds": ttl_seconds,
-            "consume_once": consume_once,
-        }
-    ).encode("utf-8")
+    payload = json.dumps({"bundle": bundle, "ttl_seconds": ttl_seconds}).encode("utf-8")
     req = request.Request(
         endpoint,
         data=payload,
@@ -47,100 +38,46 @@ def post_create_transfer(
         return json.loads(response.read().decode("utf-8"))
 
 
-def build_import_prompt(short_code: str | None, transfer_id: str | None) -> str:
-    parts = [
-        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。",
-        "先 preview，再用 upsert 模式导入。",
+def summarize_bundle(bundle: dict) -> list[str]:
+    counts = Counter(memory.get("type", "unknown") for memory in bundle.get("memories", []))
+    return [f"- {count} {memory_type}" for memory_type, count in sorted(counts.items())]
+
+
+def render_prompt_output(payload: dict, bundle: dict) -> str:
+    lines = [
+        "Transfer ready.",
+        "",
+        f"Code: {payload['short_code']}",
+        f"Transfer ID: {payload['transfer_id']}",
+        f"Confirm phrase: {payload['confirm_phrase']}",
+        f"Expires at: {payload['expires_at']}",
+        "",
+        "Includes:",
     ]
-    if short_code:
-        parts.insert(1, f"短码是 {short_code}。")
-    elif transfer_id:
-        parts.insert(1, f"transfer_id 是 {transfer_id}。")
-    return " ".join(parts)
-
-
-def render_prompt_output(payload: dict, output_kind: str) -> str:
-    lines = ["导出成功："]
-    if output_kind in {"short", "both"}:
-        lines.append(f"Short Code: {payload['short_code']}")
-    lines.append(f"Transfer ID: {payload['transfer_id']}")
-    if output_kind in {"qr", "both"}:
-        lines.append(f"QR Payload: {payload['qr_payload']}")
-    lines.append("发给目标机器 agent：")
-    if output_kind == "qr":
-        lines.append(
-            "请用 memory-transfer skill 从服务器拉取并导入这份记忆。"
-            f"二维码 payload 是 {payload['qr_payload']}。"
-            "先 preview，再用 upsert 模式导入。"
-        )
-    else:
-        lines.append(build_import_prompt(short_code=payload["short_code"], transfer_id=None))
+    lines.extend(summarize_bundle(bundle) or ["- 0 memories"])
+    lines.append("")
+    lines.append("Send this to the target agent:")
+    lines.append(
+        "请用 memory-transfer skill 先 lookup 这份记忆。"
+        f"短码是 {payload['short_code']}。"
+        "拿到 preview 后，要求我输入 confirm phrase。"
+    )
     return "\n".join(lines)
-
-
-def select_output(payload: dict, output_kind: str) -> dict:
-    short_import_prompt = build_import_prompt(
-        short_code=payload["short_code"],
-        transfer_id=None,
-    )
-    transfer_import_prompt = build_import_prompt(
-        short_code=None,
-        transfer_id=payload["transfer_id"],
-    )
-    prompts = {
-        "import_by_short_code": short_import_prompt,
-        "import_by_transfer_id": transfer_import_prompt,
-    }
-    prompt_bundle = {
-        "send_to_target_agent": short_import_prompt,
-        "import_by_short_code": short_import_prompt,
-        "import_by_transfer_id": transfer_import_prompt,
-    }
-    if output_kind == "qr":
-        return {
-            "transfer_id": payload["transfer_id"],
-            "qr_payload": payload["qr_payload"],
-            "expires_at": payload["expires_at"],
-            "next_prompts": prompt_bundle,
-        }
-    if output_kind == "short":
-        return {
-            "transfer_id": payload["transfer_id"],
-            "short_code": payload["short_code"],
-            "expires_at": payload["expires_at"],
-            "next_prompts": prompt_bundle,
-        }
-    payload["next_prompts"] = prompt_bundle
-    return payload
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Upload a memory bundle to the configured server and return QR / short code transfer info."
+        description="Create a transfer session and return short code plus confirm phrase."
     )
     parser.add_argument("--bundle", help="Existing bundle JSON file")
     parser.add_argument("--source", help="Source bundle JSON, markdown/text file, or directory")
-    parser.add_argument("--output-kind", choices=["qr", "short", "both"], default="both")
+    parser.add_argument("--ttl-seconds", type=int, default=600)
+    parser.add_argument("--types", nargs="*", help="Optional whitelist of memory types")
     parser.add_argument(
         "--format",
         choices=["prompt", "json"],
         default="prompt",
         help="Render a fixed human-facing prompt block or JSON payload",
-    )
-    parser.add_argument("--ttl-seconds", type=int, default=3600)
-    parser.add_argument("--types", nargs="*", help="Optional whitelist of memory types")
-    parser.add_argument(
-        "--consume-once",
-        dest="consume_once",
-        action="store_true",
-        default=True,
-        help="Mark transfer as one-time consumable (default)",
-    )
-    parser.add_argument(
-        "--keep",
-        dest="consume_once",
-        action="store_false",
-        help="Allow repeated fetch until TTL expiry",
     )
     args = parser.parse_args()
 
@@ -148,15 +85,15 @@ def main() -> None:
         raise SystemExit("Either --bundle or --source is required.")
 
     bundle = build_bundle(args)
-    response = post_create_transfer(
-        bundle=bundle,
-        ttl_seconds=args.ttl_seconds,
-        consume_once=args.consume_once,
-    )
+    response = post_create_transfer(bundle=bundle, ttl_seconds=args.ttl_seconds)
     if args.format == "json":
-        print(json.dumps(select_output(response, args.output_kind), indent=2))
+        rendered = dict(response)
+        rendered["memory_type_counts"] = dict(
+            Counter(memory.get("type", "unknown") for memory in bundle.get("memories", []))
+        )
+        print(json.dumps(rendered, indent=2))
         return
-    print(render_prompt_output(response, args.output_kind))
+    print(render_prompt_output(response, bundle))
 
 
 if __name__ == "__main__":

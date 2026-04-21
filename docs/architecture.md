@@ -3,7 +3,7 @@
 `memory-transfer` is a small monorepo with two main runtime pieces:
 
 - `backend/`: temporary relay service for bundles
-- `skills/memory-transfer/`: OpenClaw-style skill for export, preview, QR generation, and import
+- `skills/memory-transfer/`: OpenClaw-style skill for export, lookup, confirm-import, and local import
 
 ## Design Principles
 
@@ -16,17 +16,18 @@
 ## Backend Responsibilities
 
 - Accept a validated memory bundle
-- Generate `transfer_id`, `short_code`, and QR payload
+- Generate `transfer_id`, `short_code`, and `confirm_phrase`
 - Store bundle in memory with optional file snapshot persistence
 - Enforce TTL
-- Support one-time consume behavior
+- Support preview lookup and one-time confirm-import behavior
 
 ## Skill Responsibilities
 
 - Read local or mock memory source data
-- Filter exportable memories
 - Generate a transferable bundle
+- Show source-side short code plus confirm phrase
 - Preview the bundle before import
+- Confirm import with short code plus confirm phrase
 - Apply import modes: `append`, `replace`, `upsert`
 
 ## Shared Assets

@@ -5,7 +5,7 @@ entrypoint: SKILL.md
 scripts:
   export: scripts/export_memory.py
   transfer: scripts/create_transfer.py
-  fetch: scripts/fetch_transfer.py
+  lookup: scripts/lookup_transfer.py
+  confirm: scripts/confirm_import.py
   preview: scripts/preview_bundle.py
   import: scripts/import_memory.py
-  qr: scripts/generate_qr.py

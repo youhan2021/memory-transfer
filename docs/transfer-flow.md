@@ -3,18 +3,19 @@
 ## Source Side
 
 1. Read local memory source data
-2. Filter memories by `transferable=true`
-3. Exclude temporary or device-specific records
-4. Build a bundle
-5. Upload bundle to relay backend
-6. Receive `transfer_id`, short code, and QR payload
+2. Build a bundle
+3. Upload the bundle to the relay backend
+4. Receive `short_code`, `confirm_phrase`, and `expires_at`
+5. Share the short code and confirm phrase with the target user through conversation
 
 ## Target Side
 
-1. Fetch preview with `transfer_id`
-2. Inspect counts and memory summaries
-3. Import with `append`, `replace`, or `upsert`
-4. Optionally consume the transfer
+1. Enter the short code
+2. Call lookup and show preview only
+3. Ask the user for the confirm phrase
+4. Call confirm-import with `short_code + confirm_phrase`
+5. Import with `append`, `replace`, or `upsert`
+6. Mark the transfer consumed
 
 ## Why This Is Not Sync
 

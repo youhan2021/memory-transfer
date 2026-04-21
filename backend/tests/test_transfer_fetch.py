@@ -17,68 +17,126 @@ def sample_bundle() -> dict[str, object]:
                 "tags": ["install"],
                 "transferable": True,
                 "sensitivity": "medium",
-            }
+            },
+            {
+                "id": "mem_2",
+                "type": "workflow",
+                "title": "Review flow",
+                "content": "Preview first, then import.",
+                "tags": ["workflow"],
+                "transferable": True,
+                "sensitivity": "low",
+            },
         ],
     }
 
 
-def test_fetch_preview_and_full_bundle() -> None:
+def create_transfer(client: TestClient) -> dict:
+    response = client.post(
+        "/transfer/create",
+        json={"bundle": sample_bundle(), "ttl_seconds": 600},
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def test_lookup_returns_preview_only() -> None:
     app = create_app()
     with TestClient(app) as client:
-        create_response = client.post(
-            "/transfer/create",
-            json={"bundle": sample_bundle(), "ttl_seconds": 3600, "consume_once": True},
-        )
-        transfer_id = create_response.json()["transfer_id"]
+        created = create_transfer(client)
+        response = client.post("/transfer/lookup", json={"short_code": created["short_code"]})
 
-        preview_response = client.get(f"/transfer/{transfer_id}")
-        full_response = client.get(f"/transfer/{transfer_id}?preview=false")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["short_code"] == created["short_code"]
+    assert payload["preview"]["source_agent"] == "unit-test-source"
+    assert payload["preview"]["memory_count"] == 2
+    assert payload["preview"]["memory_type_counts"] == {
+        "project_context": 1,
+        "workflow": 1,
+    }
+    assert payload["preview"]["requires_confirm_phrase"] is True
+    assert "content" not in str(payload)
 
-    assert preview_response.status_code == 200
-    assert preview_response.json()["bundle"] is None
-    assert preview_response.json()["preview"]["total_memories"] == 1
 
-    assert full_response.status_code == 200
-    assert full_response.json()["bundle"]["source_agent"] == "unit-test-source"
-
-
-def test_fetch_by_short_code_aliases() -> None:
+def test_confirm_import_succeeds_with_correct_phrase() -> None:
     app = create_app()
     with TestClient(app) as client:
-        create_response = client.post(
-            "/transfer/create",
-            json={"bundle": sample_bundle(), "ttl_seconds": 3600, "consume_once": True},
+        created = create_transfer(client)
+        response = client.post(
+            "/transfer/confirm-import",
+            json={
+                "short_code": created["short_code"],
+                "confirm_phrase": created["confirm_phrase"],
+                "import_mode": "upsert",
+            },
         )
-        payload = create_response.json()
-        short_code = payload["short_code"]
 
-        by_root = client.get(f"/transfer/{short_code}")
-        by_code = client.get(f"/transfer/code/{short_code}")
-        by_short = client.get(f"/transfer/short/{short_code}")
-        by_post = client.post("/transfer/fetch", json={"code": short_code, "preview": True})
-
-    assert by_root.status_code == 200
-    assert by_root.json()["transfer_id"] == payload["transfer_id"]
-    assert by_code.status_code == 200
-    assert by_code.json()["transfer_id"] == payload["transfer_id"]
-    assert by_short.status_code == 200
-    assert by_short.json()["transfer_id"] == payload["transfer_id"]
-    assert by_post.status_code == 200
-    assert by_post.json()["transfer_id"] == payload["transfer_id"]
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "consumed"
+    assert payload["import_mode"] == "upsert"
+    assert payload["bundle"]["memories"][0]["content"] == "One-command install is required."
 
 
-def test_consume_blocks_future_fetch_for_one_time_transfer() -> None:
+def test_confirm_import_fails_with_wrong_phrase() -> None:
     app = create_app()
     with TestClient(app) as client:
-        create_response = client.post(
-            "/transfer/create",
-            json={"bundle": sample_bundle(), "ttl_seconds": 3600, "consume_once": True},
+        created = create_transfer(client)
+        response = client.post(
+            "/transfer/confirm-import",
+            json={
+                "short_code": created["short_code"],
+                "confirm_phrase": "wrong phrase",
+                "import_mode": "upsert",
+            },
         )
-        transfer_id = create_response.json()["transfer_id"]
 
-        consume_response = client.post(f"/transfer/{transfer_id}/consume")
-        fetch_after_consume = client.get(f"/transfer/{transfer_id}")
+    assert response.status_code == 403
 
-    assert consume_response.status_code == 200
-    assert consume_response.json()["consumed"] is True
-    assert fetch_after_consume.status_code == 410
+
+def test_expired_transfer_cannot_be_imported() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        created = client.post(
+            "/transfer/create",
+            json={"bundle": sample_bundle(), "ttl_seconds": 60},
+        ).json()
+        client.app.state.bundle_store._records[created["transfer_id"]].expires_at = (  # noqa: SLF001
+            client.app.state.bundle_store._records[created["transfer_id"]].created_at  # noqa: SLF001
+        )
+        response = client.post(
+            "/transfer/confirm-import",
+            json={
+                "short_code": created["short_code"],
+                "confirm_phrase": created["confirm_phrase"],
+                "import_mode": "upsert",
+            },
+        )
+
+    assert response.status_code == 410
+
+
+def test_consumed_transfer_cannot_be_imported_twice() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        created = create_transfer(client)
+        first = client.post(
+            "/transfer/confirm-import",
+            json={
+                "short_code": created["short_code"],
+                "confirm_phrase": created["confirm_phrase"],
+                "import_mode": "upsert",
+            },
+        )
+        second = client.post(
+            "/transfer/confirm-import",
+            json={
+                "short_code": created["short_code"],
+                "confirm_phrase": created["confirm_phrase"],
+                "import_mode": "append",
+            },
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 410

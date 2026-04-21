@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memory-transfer.local/schemas/transfer-confirm-import-response.schema.json",
+  "title": "TransferConfirmImportResponse",
+  "type": "object",
+  "required": [
+    "transfer_id",
+    "short_code",
+    "status",
+    "import_mode",
+    "consumed_at",
+    "bundle"
+  ],
+  "properties": {
+    "transfer_id": { "type": "string" },
+    "short_code": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["consumed"]
+    },
+    "import_mode": {
+      "type": "string",
+      "enum": ["append", "replace", "upsert"]
+    },
+    "consumed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bundle": {
+      "$ref": "./memory-bundle.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

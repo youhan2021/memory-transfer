@@ -12,11 +12,7 @@
       "type": "integer",
       "minimum": 60,
       "maximum": 604800,
-      "default": 3600
-    },
-    "consume_once": {
-      "type": "boolean",
-      "default": true
+      "default": 600
     }
   },
   "additionalProperties": false
