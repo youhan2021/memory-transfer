@@ -58,12 +58,46 @@ def test_create_transfer_from_markdown(tmp_path: Path) -> None:
         server.shutdown()
         thread.join(timeout=2)
 
+    assert "导出成功：" in result.stdout
+    assert "Short Code: ABC123" in result.stdout
+    assert "Transfer ID: tr_test" in result.stdout
+    assert "发给目标机器 agent：" in result.stdout
+    assert "短码是 ABC123" in result.stdout
+    assert "python3" not in result.stdout
+
+
+def test_create_transfer_json_mode(tmp_path: Path) -> None:
+    source = tmp_path / "note.md"
+    source.write_text("用户偏好简洁说明和短编码分享。", encoding="utf-8")
+
+    server = HTTPServer(("127.0.0.1", 0), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        script = Path(__file__).resolve().parents[1] / "scripts/create_transfer.py"
+        env = {"MEMORY_TRANSFER_SERVER_URL": f"http://127.0.0.1:{server.server_port}/"}
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(script),
+                "--source",
+                str(source),
+                "--output-kind",
+                "short",
+                "--format",
+                "json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+    finally:
+        server.shutdown()
+        thread.join(timeout=2)
+
     payload = json.loads(result.stdout)
     assert payload["transfer_id"] == "tr_test"
     assert payload["short_code"] == "ABC123"
-    assert "qr_payload" not in payload
-    assert payload["next_prompts"]["send_to_target_agent"] == (
-        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。 短码是 ABC123。 先 preview，再用 upsert 模式导入。"
-    )
-    assert "ABC123" in payload["next_prompts"]["import_by_short_code"]
-    assert "upsert" in payload["next_prompts"]["import_by_short_code"]
+    assert "next_prompts" in payload

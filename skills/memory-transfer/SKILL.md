@@ -36,6 +36,7 @@ This skill helps move stable, exportable memories from one agent context to anot
 - The import prompt should be rule-based and template-generated, not free-written
 - Do not output shell commands, Python commands, local paths, or CLI snippets when returning the next-step transfer instruction
 - Use a fixed sentence template such as: `请用 memory-transfer skill 从服务器拉取并导入这份记忆。短码是 XXXX。先 preview，再用 upsert 模式导入。`
+- `scripts/create_transfer.py` should default to prompt-style text output, not JSON, so callers naturally surface the prompt instead of inventing CLI
 
 ## Response Format
 

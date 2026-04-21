@@ -59,6 +59,25 @@ def build_import_prompt(short_code: str | None, transfer_id: str | None) -> str:
     return " ".join(parts)
 
 
+def render_prompt_output(payload: dict, output_kind: str) -> str:
+    lines = ["导出成功："]
+    if output_kind in {"short", "both"}:
+        lines.append(f"Short Code: {payload['short_code']}")
+    lines.append(f"Transfer ID: {payload['transfer_id']}")
+    if output_kind in {"qr", "both"}:
+        lines.append(f"QR Payload: {payload['qr_payload']}")
+    lines.append("发给目标机器 agent：")
+    if output_kind == "qr":
+        lines.append(
+            "请用 memory-transfer skill 从服务器拉取并导入这份记忆。"
+            f"二维码 payload 是 {payload['qr_payload']}。"
+            "先 preview，再用 upsert 模式导入。"
+        )
+    else:
+        lines.append(build_import_prompt(short_code=payload["short_code"], transfer_id=None))
+    return "\n".join(lines)
+
+
 def select_output(payload: dict, output_kind: str) -> dict:
     short_import_prompt = build_import_prompt(
         short_code=payload["short_code"],
@@ -102,6 +121,12 @@ def main() -> None:
     parser.add_argument("--bundle", help="Existing bundle JSON file")
     parser.add_argument("--source", help="Source bundle JSON, markdown/text file, or directory")
     parser.add_argument("--output-kind", choices=["qr", "short", "both"], default="both")
+    parser.add_argument(
+        "--format",
+        choices=["prompt", "json"],
+        default="prompt",
+        help="Render a fixed human-facing prompt block or JSON payload",
+    )
     parser.add_argument("--ttl-seconds", type=int, default=3600)
     parser.add_argument("--types", nargs="*", help="Optional whitelist of memory types")
     parser.add_argument(
@@ -128,7 +153,10 @@ def main() -> None:
         ttl_seconds=args.ttl_seconds,
         consume_once=args.consume_once,
     )
-    print(json.dumps(select_output(response, args.output_kind), indent=2))
+    if args.format == "json":
+        print(json.dumps(select_output(response, args.output_kind), indent=2))
+        return
+    print(render_prompt_output(response, args.output_kind))
 
 
 if __name__ == "__main__":
