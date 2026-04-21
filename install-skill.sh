@@ -110,7 +110,7 @@ install_from_remote() {
   local archive_url="https://codeload.github.com/${REPO_SLUG}/tar.gz/refs/heads/${REPO_REF}"
   local temp_dir
   temp_dir="$(mktemp -d)"
-  trap 'rm -rf "${temp_dir}"' EXIT
+  trap "rm -rf '${temp_dir}'" EXIT
 
   "${DOWNLOAD_CMD[@]}" "${archive_url}" | tar -xzf - -C "${temp_dir}"
 
