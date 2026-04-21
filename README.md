@@ -30,10 +30,17 @@ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/m
 ```
 
 The installer will ask for `MEMORY_TRANSFER_SERVER_URL` and write it into the installed skill's `config.env`.
+It will also ask for the target skill install directory, so Hermes/OpenClaw users can choose the correct runtime skills path.
 You can also preseed it:
 
 ```bash
 MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```
+
+Or preseed both values:
+
+```bash
+MEMORY_TRANSFER_SKILLS_DIR=~/.hermes/skills MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
 ```
 
 If you already cloned this repo locally, run:
