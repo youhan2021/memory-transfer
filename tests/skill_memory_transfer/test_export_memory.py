@@ -37,7 +37,7 @@ def test_export_memory_filters_temporary(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    script = Path(__file__).resolve().parents[1] / "scripts/export_memory.py"
+    script = Path(__file__).resolve().parents[2] / "skills/memory-transfer/scripts/export_memory.py"
     result = subprocess.run(
         [sys.executable, str(script), "--source", str(source)],
         check=True,
@@ -57,7 +57,7 @@ def test_export_memory_generates_bundle_from_markdown(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    script = Path(__file__).resolve().parents[1] / "scripts/export_memory.py"
+    script = Path(__file__).resolve().parents[2] / "skills/memory-transfer/scripts/export_memory.py"
     result = subprocess.run(
         [sys.executable, str(script), "--source", str(source)],
         check=True,
@@ -79,7 +79,7 @@ def test_export_memory_does_not_drop_negative_tmp_reference(tmp_path: Path) -> N
         encoding="utf-8",
     )
 
-    script = Path(__file__).resolve().parents[1] / "scripts/export_memory.py"
+    script = Path(__file__).resolve().parents[2] / "skills/memory-transfer/scripts/export_memory.py"
     result = subprocess.run(
         [sys.executable, str(script), "--source", str(source)],
         check=True,
@@ -125,7 +125,7 @@ def test_export_memory_only_filters_when_types_is_explicit(tmp_path: Path) -> No
         encoding="utf-8",
     )
 
-    script = Path(__file__).resolve().parents[1] / "scripts/export_memory.py"
+    script = Path(__file__).resolve().parents[2] / "skills/memory-transfer/scripts/export_memory.py"
     default_result = subprocess.run(
         [sys.executable, str(script), "--source", str(source)],
         check=True,

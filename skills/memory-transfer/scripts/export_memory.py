@@ -17,6 +17,10 @@ DEFAULT_EXPORT_TYPES = {
 }
 DEFAULT_EXCLUDED_TYPES = {"temporary"}
 TEXT_EXTENSIONS = {".md", ".txt"}
+METADATA_PATTERN = re.compile(
+    r"\n?<!--\s*memory-transfer-meta:\s*(\{.*\})\s*-->\s*$",
+    re.DOTALL,
+)
 LOCAL_ONLY_PATTERNS = (
     re.compile(r"\bdevice id\b"),
     re.compile(r"\blocalhost-only\b"),
@@ -66,8 +70,24 @@ def make_memory_id(path: Path, content: str) -> str:
     return f"mem_{digest}"
 
 
+def parse_embedded_metadata(raw_content: str) -> tuple[str, dict | None]:
+    match = METADATA_PATTERN.search(raw_content)
+    if not match:
+        return raw_content.strip(), None
+
+    metadata = json.loads(match.group(1))
+    content = METADATA_PATTERN.sub("", raw_content).strip()
+    title = metadata.get("title")
+    if title:
+        heading = f"# {title}"
+        if content.startswith(heading):
+            content = content[len(heading):].lstrip()
+    return content, metadata
+
+
 def memory_from_text_file(path: Path) -> dict:
-    content = path.read_text(encoding="utf-8").strip()
+    raw_content = path.read_text(encoding="utf-8")
+    content, embedded_metadata = parse_embedded_metadata(raw_content)
     if not content:
         return {
             "id": make_memory_id(path, ""),
@@ -77,6 +97,17 @@ def memory_from_text_file(path: Path) -> dict:
             "tags": [path.suffix.lstrip(".")] if path.suffix else [],
             "transferable": False,
             "sensitivity": "low",
+        }
+
+    if embedded_metadata:
+        return {
+            "id": embedded_metadata.get("id", make_memory_id(path, content)),
+            "type": embedded_metadata.get("type", guess_memory_type(path, content)),
+            "title": embedded_metadata.get("title", path.stem),
+            "content": content,
+            "tags": embedded_metadata.get("tags", []),
+            "transferable": embedded_metadata.get("transferable", True),
+            "sensitivity": embedded_metadata.get("sensitivity", "low"),
         }
 
     inferred_type = guess_memory_type(path, content)

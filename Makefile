@@ -8,6 +8,9 @@ dev-backend:
 test-backend:
 	cd backend && uv run pytest
 
+test-skill:
+	cd backend && uv run pytest ../tests/skill_memory_transfer
+
 install:
 	bash ./install-backend
 

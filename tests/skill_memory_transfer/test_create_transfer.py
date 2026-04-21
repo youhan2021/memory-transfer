@@ -45,7 +45,7 @@ def test_create_transfer_from_markdown(tmp_path: Path) -> None:
     thread.start()
 
     try:
-        script = Path(__file__).resolve().parents[1] / "scripts/create_transfer.py"
+        script = Path(__file__).resolve().parents[2] / "skills/memory-transfer/scripts/create_transfer.py"
         env = {"MEMORY_TRANSFER_SERVER_URL": f"http://127.0.0.1:{server.server_port}/"}
         result = subprocess.run(
             [sys.executable, str(script), "--source", str(source), "--output-kind", "short"],
@@ -75,7 +75,7 @@ def test_create_transfer_json_mode(tmp_path: Path) -> None:
     thread.start()
 
     try:
-        script = Path(__file__).resolve().parents[1] / "scripts/create_transfer.py"
+        script = Path(__file__).resolve().parents[2] / "skills/memory-transfer/scripts/create_transfer.py"
         env = {"MEMORY_TRANSFER_SERVER_URL": f"http://127.0.0.1:{server.server_port}/"}
         result = subprocess.run(
             [

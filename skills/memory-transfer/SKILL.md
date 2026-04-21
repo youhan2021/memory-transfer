@@ -86,4 +86,3 @@ This output is not allowed. Replace it with the fixed prompt format above.
 - `config.env.example.txt`: example server config template
 - `references/`: bundle and import behavior references
 - `scripts/`: runnable helpers
-- `tests/`: basic script tests
