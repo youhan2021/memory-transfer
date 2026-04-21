@@ -9,5 +9,3 @@ scripts:
   preview: scripts/preview_bundle.py
   import: scripts/import_memory.py
   qr: scripts/generate_qr.py
-install:
-  local_script: scripts/install_local.sh

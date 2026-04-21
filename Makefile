@@ -9,13 +9,13 @@ test-backend:
 	cd backend && uv run pytest
 
 install:
-	bash ./install.sh
+	bash ./install-backend
 
 install-link:
-	bash ./install.sh --link
+	bash ./install-backend --link
 
 install-copy:
-	bash ./install.sh --copy
+	bash ./install-backend --copy
 
 install-skill:
 	bash ./install-skill.sh

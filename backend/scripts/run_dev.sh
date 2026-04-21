@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 if ! command -v uv >/dev/null 2>&1; then
-  echo "uv is required but was not found. Run ../install.sh first." >&2
+  echo "uv is required but was not found. Run ../install-backend first." >&2
   exit 1
 fi
 

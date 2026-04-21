@@ -24,9 +24,8 @@ This skill helps move stable, exportable memories from one agent context to anot
 
 ## Rules
 
-- Prefer stable memory types such as `preference`, `profile`, `project_context`, `workflow`, and `tool_preference`
-- Exclude `temporary` items by default
-- Exclude local path, device-specific, and cache-like items by default
+- Do not apply automatic export filtering rules by default
+- Export should keep memories as-is unless the user explicitly asks for type filtering
 - Use preview before applying import when possible
 - If there is no existing bundle, do not ask the user to prepare one first; generate a minimal bundle directly from available `.md` or `.txt` memory files
 - When a single local memory note is available, treat it as source material and package it into a bundle automatically

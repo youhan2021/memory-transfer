@@ -2,24 +2,37 @@
 
 This skill is designed for local, file-based demonstrations of agent memory transfer.
 
+这个 skill 用于本地、文件驱动的 agent 记忆迁移演示。
+
 It should be installable on its own. Users should not need to clone the full monorepo just to install the skill.
 
-The primary installer entrypoint lives at the repository root as `install-skill.sh`, so remote install can use a simple GitHub raw URL.
+它应该支持独立安装。用户不应该为了安装这个 skill 而先 clone 整个 monorepo。
 
-## Server Config
+The primary installer entrypoint lives at the repository root as `install-skill.sh`, so remote install can use a simple GitHub source.
+
+主要安装入口位于仓库根目录的 `install-skill.sh`，因此远程安装可以直接基于 GitHub 源执行。
+
+## Server Config | 服务端配置
 
 The skill reads backend server config from:
+
+skill 会从以下位置读取 backend 服务地址配置：
 
 - `config.env`: local, ignored by git
 - `config.env.example.txt`: committed example
 
+- `config.env`：本地配置文件，已加入 gitignore
+- `config.env.example.txt`：提交到仓库的示例文件
+
 Example value:
+
+示例值：
 
 ```text
 MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/
 ```
 
-## Standalone Install
+## Standalone Install | 独立安装
 
 ```text
 请安装 memory-transfer skill。
@@ -31,7 +44,13 @@ MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/
 
 During install, the script will ask for `MEMORY_TRANSFER_SERVER_URL` and save it to `config.env`.
 It will also ask for the skill install directory, instead of assuming an OpenClaw-only path.
-Hermes 场景可直接使用这个 prompt：
+
+安装过程中，脚本会询问 `MEMORY_TRANSFER_SERVER_URL` 并把它写入 `config.env`。
+它还会询问 skill 安装目录，而不是假设只能安装到 OpenClaw 默认路径。
+
+Hermes install prompt:
+
+Hermes 安装 prompt：
 
 ```text
 请安装 memory-transfer skill。
@@ -40,7 +59,9 @@ Skill install directory 请填写 `~/.hermes/skills`。
 MEMORY_TRANSFER_SERVER_URL 请按当前环境填写。
 ```
 
-如果已经在本地仓库中，也可以这样告诉 agent：
+If the repo is already available locally, you can tell the agent:
+
+如果仓库已经在本地，也可以这样告诉 agent：
 
 ```text
 请安装当前仓库里的 memory-transfer skill，并在安装时让我输入：
@@ -50,16 +71,18 @@ MEMORY_TRANSFER_SERVER_URL 请按当前环境填写。
 
 Supported modes:
 
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
-bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh) --copy
-./install-skill.sh --link
-./install-skill.sh --copy
+支持的安装模式：
+
+```text
+- 远程安装仓库里的 skill
+- 远程安装并复制 skill
+- 本地 link 安装
+- 本地 copy 安装
 ```
 
-## Scripts
+## Scripts | 脚本
 
-- `export_memory.py`: export a filtered bundle, or auto-build one from `.md` / `.txt` memory files
+- `export_memory.py`: export a bundle without automatic filtering, or auto-build one from `.md` / `.txt` memory files
 - `create_transfer.py`: upload a bundle to the configured backend and by default print a fixed agent-facing import prompt block
 - `fetch_transfer.py`: fetch a bundle from the backend by `transfer_id` or `short_code`
 - `preview_bundle.py`: summarize a bundle before import
@@ -67,23 +90,32 @@ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/m
 - `import_memory.py`: import into a local target file
 - `apply_import.py`: import mode implementation helper
 - `skill_config.py`: reads `config.env` and returns the configured backend server URL
-- `install_local.sh`: local helper used by the repo-level skill installer
 
-## Repo-Local Install
+- `export_memory.py`：导出不带自动过滤的 bundle，或从 `.md` / `.txt` 记忆文件自动构建 bundle
+- `create_transfer.py`：上传 bundle 到配置好的 backend，并默认输出固定的 agent 导入 prompt
+- `fetch_transfer.py`：按 `transfer_id` 或 `short_code` 从 backend 拉取 bundle
+- `preview_bundle.py`：导入前预览 bundle
+- `generate_qr.py`：生成传输 payload 和可选的 ASCII QR 占位输出
+- `import_memory.py`：导入到本地目标文件
+- `apply_import.py`：导入模式实现辅助脚本
+- `skill_config.py`：读取 `config.env` 并返回 backend 服务地址
 
-```bash
-bash scripts/install_local.sh --link
+## Repo-Local Install | 仓库内本地安装
+
+```text
+请安装当前仓库里的 memory-transfer skill，并在安装时让我输入：
+1. Skill install directory
+2. MEMORY_TRANSFER_SERVER_URL
 ```
 
-## Example
+## Example | 示例
 
-```bash
-python scripts/export_memory.py --source ../../examples/sample-memory-bundle.json
-python scripts/export_memory.py --source ../../memory
-python scripts/export_memory.py --source ../../memory/2026-04-18-moyu-threebody.md
-python scripts/create_transfer.py --source ../../memory --output-kind both
-python scripts/create_transfer.py --source ../../memory/2026-04-18-moyu-threebody.md --output-kind qr
-python scripts/fetch_transfer.py --short-code ABC123 --output ./dist/fetched-ABC123.json
-python scripts/preview_bundle.py --bundle ../../examples/sample-memory-bundle.json
-python scripts/import_memory.py --bundle ../../examples/sample-memory-bundle.json --target ../../dist/imported-memories.json --mode upsert
+```text
+请用 memory-transfer skill 从示例 bundle 导出可迁移记忆。
+
+请用 memory-transfer skill 从 `memory` 目录直接生成 bundle 并导出可迁移记忆。
+
+请用 memory-transfer skill 从 `2026-04-18-moyu-threebody.md` 直接生成 bundle 并创建传输。
+
+请用 memory-transfer skill 根据短码拉取 bundle，先 preview，再用 upsert 模式导入。
 ```

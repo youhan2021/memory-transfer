@@ -81,14 +81,13 @@ def memory_from_text_file(path: Path) -> dict:
 
     inferred_type = guess_memory_type(path, content)
     lowered = content.lower()
-    transferable = not looks_like_local_only_content(lowered)
     return {
         "id": make_memory_id(path, content),
         "type": inferred_type,
         "title": path.stem.replace("-", " ").replace("_", " ").strip() or path.name,
         "content": content,
         "tags": [path.suffix.lstrip(".")] if path.suffix else [],
-        "transferable": transferable and inferred_type not in DEFAULT_EXCLUDED_TYPES,
+        "transferable": True,
         "sensitivity": "medium" if any(token in lowered for token in ("private", "sensitive")) else "low",
     }
 
@@ -123,18 +122,10 @@ def load_source_bundle(path: Path) -> dict:
 
 
 def filter_memories(bundle: dict, include_types: set[str] | None = None) -> dict:
-    include_types = include_types or DEFAULT_EXPORT_TYPES
     filtered = []
     for memory in bundle.get("memories", []):
         memory_type = memory.get("type")
-        content = str(memory.get("content", "")).lower()
-        if not memory.get("transferable", False):
-            continue
-        if memory_type in DEFAULT_EXCLUDED_TYPES:
-            continue
-        if memory_type not in include_types:
-            continue
-        if looks_like_local_only_content(content):
+        if include_types and memory_type not in include_types:
             continue
         filtered.append(memory)
 
@@ -159,7 +150,7 @@ def main() -> None:
     parser.add_argument(
         "--types",
         nargs="*",
-        help="Optional whitelist of memory types",
+        help="Optional whitelist of memory types; by default export does not filter memories",
     )
     args = parser.parse_args()
 

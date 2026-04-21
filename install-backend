@@ -28,10 +28,10 @@ resolve_skills_dir() {
 usage() {
   cat <<'EOF'
 Usage:
-  ./install.sh
-  ./install.sh --link
-  ./install.sh --copy
-  ./install.sh --dev
+  ./install-backend
+  ./install-backend --link
+  ./install-backend --copy
+  ./install-backend --dev
 
 Options:
   --link    Install the skill with a symlink inside the repo/dev setup
@@ -93,7 +93,7 @@ ensure_uv() {
   export PATH="${HOME}/.local/bin:${PATH}"
   if ! command -v uv >/dev/null 2>&1; then
     echo "uv installation completed but uv is still not on PATH." >&2
-    echo "Try adding ~/.local/bin to PATH and rerun ./install.sh" >&2
+    echo "Try adding ~/.local/bin to PATH and rerun ./install-backend" >&2
     exit 1
   fi
 }
