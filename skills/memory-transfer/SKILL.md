@@ -37,6 +37,47 @@ This skill helps move stable, exportable memories from one agent context to anot
 - Do not output shell commands, Python commands, local paths, or CLI snippets when returning the next-step transfer instruction
 - Use a fixed sentence template such as: `请用 memory-transfer skill 从服务器拉取并导入这份记忆。短码是 XXXX。先 preview，再用 upsert 模式导入。`
 
+## Response Format
+
+When export + upload succeeds, the response must follow this structure:
+
+```text
+导出成功：
+Short Code: XXXX
+Transfer ID: YYYY
+发给目标机器 agent：
+请用 memory-transfer skill 从服务器拉取并导入这份记忆。短码是 XXXX。先 preview，再用 upsert 模式导入。
+```
+
+If the user asked for QR code only, replace the last line with:
+
+```text
+请用 memory-transfer skill 从服务器拉取并导入这份记忆。二维码 payload 是 ZZZZ。先 preview，再用 upsert 模式导入。
+```
+
+If both are requested, prefer the short-code prompt in the main response and optionally include the QR payload on a separate line.
+
+## Forbidden Output
+
+After a transfer is created, do not output any of the following:
+
+- `python ...`
+- `python3 ...`
+- `bash ...`
+- `curl ...`
+- filesystem paths such as `~/.openclaw/...` or `/tmp/bundle.json`
+- multi-step CLI import instructions
+
+Bad example:
+
+```text
+目标机器导入：
+python3 ~/.openclaw/skills/memory-transfer/scripts/fetch_transfer.py --short-code XXXX --output /tmp/bundle.json
+python3 ~/.openclaw/skills/memory-transfer/scripts/import_memory.py --bundle /tmp/bundle.json --target ~/.hermes/memories/ --mode upsert
+```
+
+This output is not allowed. Replace it with the fixed prompt format above.
+
 ## Files
 
 - `openclaw.yaml`: OpenClaw-facing metadata
