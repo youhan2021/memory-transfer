@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_DIR="${ROOT_DIR}/backend"
+SKILL_SRC_DIR="${ROOT_DIR}/skills/memory-transfer"
+
+MODE="copy"
+DEV_MODE="false"
+PYTHON_BIN="python3"
+
+resolve_skills_dir() {
+  local openc_law_dir=""
+  openc_law_dir="$(printenv 'OPENC LAW_SKILLS_DIR' 2>/dev/null || true)"
+  if [[ -n "${openc_law_dir}" ]]; then
+    printf '%s\n' "${openc_law_dir}"
+    return
+  fi
+
+  if [[ -n "${OPENCLAW_SKILLS_DIR:-}" ]]; then
+    printf '%s\n' "${OPENCLAW_SKILLS_DIR}"
+    return
+  fi
+
+  printf '%s\n' "${HOME}/.openclaw/skills"
+}
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./install.sh
+  ./install.sh --link
+  ./install.sh --copy
+  ./install.sh --dev
+
+Options:
+  --link    Install the skill with a symlink inside the repo/dev setup
+  --copy    Install the skill by copying files inside the repo/dev setup (default)
+  --dev     Development mode; implies --link
+
+Note:
+  This script installs the backend and local dev environment for the monorepo.
+  If you only want the skill, run:
+    bash ./install-skill.sh
+EOF
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --link)
+      MODE="link"
+      ;;
+    --copy)
+      MODE="copy"
+      ;;
+    --dev)
+      DEV_MODE="true"
+      MODE="link"
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $arg" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required but was not found." >&2
+  exit 1
+fi
+
+ensure_uv() {
+  if command -v uv >/dev/null 2>&1; then
+    return
+  fi
+
+  if command -v curl >/dev/null 2>&1; then
+    echo "uv not found; installing via Astral installer"
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  elif command -v wget >/dev/null 2>&1; then
+    echo "uv not found; installing via Astral installer"
+    wget -qO- https://astral.sh/uv/install.sh | sh
+  else
+    echo "uv is required and neither curl nor wget is available to install it." >&2
+    exit 1
+  fi
+
+  export PATH="${HOME}/.local/bin:${PATH}"
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "uv installation completed but uv is still not on PATH." >&2
+    echo "Try adding ~/.local/bin to PATH and rerun ./install.sh" >&2
+    exit 1
+  fi
+}
+
+SKILLS_DIR="$(resolve_skills_dir)"
+SKILL_DEST_DIR="${SKILLS_DIR}/memory-transfer"
+
+echo "[1/5] Checking Python environment"
+${PYTHON_BIN} --version
+
+echo "[2/5] Ensuring uv is available"
+ensure_uv
+
+echo "[3/5] Syncing backend dependencies with uv"
+(cd "${BACKEND_DIR}" && uv sync --group dev)
+
+echo "[4/5] Creating runtime directories"
+mkdir -p "${BACKEND_DIR}/.data"
+mkdir -p "${ROOT_DIR}/dist"
+mkdir -p "${SKILLS_DIR}"
+
+echo "[5/5] Installing OpenClaw skill (${MODE})"
+rm -rf "${SKILL_DEST_DIR}"
+if [[ "${MODE}" == "link" ]]; then
+  ln -s "${SKILL_SRC_DIR}" "${SKILL_DEST_DIR}"
+else
+  cp -R "${SKILL_SRC_DIR}" "${SKILL_DEST_DIR}"
+fi
+
+cat <<EOF
+
+Installation complete.
+
+Install type:
+  repo/dev install
+
+Skill install location:
+  ${SKILL_DEST_DIR}
+
+Backend start command:
+  cd ${BACKEND_DIR}
+  uv run uvicorn memory_transfer_server.main:app --app-dir src --reload --host 0.0.0.0 --port 8000
+EOF
+
+cat <<EOF
+
+Skill usage:
+  Export bundle:
+    python ${SKILL_DEST_DIR}/scripts/export_memory.py --source ${ROOT_DIR}/examples/sample-memory-bundle.json
+  Preview bundle:
+    python ${SKILL_DEST_DIR}/scripts/preview_bundle.py --bundle ${ROOT_DIR}/examples/sample-memory-bundle.json
+  Import bundle:
+    python ${SKILL_DEST_DIR}/scripts/import_memory.py --bundle ${ROOT_DIR}/examples/sample-memory-bundle.json --target ${ROOT_DIR}/dist/imported-memories.json --mode upsert
+
+Mode:
+  install_mode=${MODE}
+  dev_mode=${DEV_MODE}
+  backend_runtime=uv
+EOF

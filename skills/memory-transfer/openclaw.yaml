@@ -1,0 +1,11 @@
+name: memory-transfer
+version: 0.1.0
+description: Low-friction memory transfer skill for selective export and import.
+entrypoint: SKILL.md
+scripts:
+  export: scripts/export_memory.py
+  preview: scripts/preview_bundle.py
+  import: scripts/import_memory.py
+  qr: scripts/generate_qr.py
+install:
+  local_script: scripts/install_local.sh

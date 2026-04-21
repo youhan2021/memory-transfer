@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memory-transfer.local/schemas/transfer-create-request.schema.json",
+  "title": "TransferCreateRequest",
+  "type": "object",
+  "required": ["bundle"],
+  "properties": {
+    "bundle": {
+      "$ref": "./memory-bundle.schema.json"
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 604800,
+      "default": 3600
+    },
+    "consume_once": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}

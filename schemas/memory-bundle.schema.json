@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memory-transfer.local/schemas/memory-bundle.schema.json",
+  "title": "MemoryBundle",
+  "type": "object",
+  "required": ["version", "source_agent", "exported_at", "memories"],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "source_agent": {
+      "type": "string"
+    },
+    "exported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "memories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "content",
+          "tags",
+          "transferable",
+          "sensitivity"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "preference",
+              "profile",
+              "project_context",
+              "workflow",
+              "tool_preference",
+              "temporary"
+            ]
+          },
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "transferable": { "type": "boolean" },
+          "sensitivity": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

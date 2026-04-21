@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "source_agent": "openclaw-source-demo",
+  "exported_at": "2026-04-21T00:00:00Z",
+  "memories": [
+    {
+      "id": "mem_pref_editor",
+      "type": "preference",
+      "title": "Editor preference",
+      "content": "User prefers concise diff-oriented explanations and bash-first examples.",
+      "tags": ["ux", "coding"],
+      "transferable": true,
+      "sensitivity": "low"
+    },
+    {
+      "id": "mem_project_style",
+      "type": "project_context",
+      "title": "Repo expectations",
+      "content": "Monorepo setup should favor one-command install and minimal runtime assumptions.",
+      "tags": ["project", "install"],
+      "transferable": true,
+      "sensitivity": "medium"
+    },
+    {
+      "id": "mem_tmp_session",
+      "type": "temporary",
+      "title": "Temporary cache",
+      "content": "Ephemeral terminal state that should not be transferred.",
+      "tags": ["ephemeral"],
+      "transferable": false,
+      "sensitivity": "low"
+    }
+  ]
+}
