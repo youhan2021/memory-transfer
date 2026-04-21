@@ -33,6 +33,9 @@ This skill helps move stable, exportable memories from one agent context to anot
 - When the user wants to transfer, do not stop after local export; ask which transfer output they want, upload to the server, and return the corresponding code immediately
 - After upload, always show the import prompt, especially the short-code based import prompt
 - If the user does not specify a preference, default to returning both `short_code` and `qr_payload`
+- The import prompt should be rule-based and template-generated, not free-written
+- Do not output shell commands, Python commands, local paths, or CLI snippets when returning the next-step transfer instruction
+- Use a fixed sentence template such as: `请用 memory-transfer skill 从服务器拉取并导入这份记忆。短码是 XXXX。先 preview，再用 upsert 模式导入。`
 
 ## Files
 

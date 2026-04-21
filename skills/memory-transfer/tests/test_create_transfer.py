@@ -62,5 +62,8 @@ def test_create_transfer_from_markdown(tmp_path: Path) -> None:
     assert payload["transfer_id"] == "tr_test"
     assert payload["short_code"] == "ABC123"
     assert "qr_payload" not in payload
+    assert payload["next_prompts"]["send_to_target_agent"] == (
+        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。 短码是 ABC123。 先 preview，再用 upsert 模式导入。"
+    )
     assert "ABC123" in payload["next_prompts"]["import_by_short_code"]
     assert "upsert" in payload["next_prompts"]["import_by_short_code"]

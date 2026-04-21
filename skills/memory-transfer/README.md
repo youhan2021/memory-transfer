@@ -44,7 +44,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/m
 ## Scripts
 
 - `export_memory.py`: export a filtered bundle, or auto-build one from `.md` / `.txt` memory files
-- `create_transfer.py`: upload a bundle to the configured backend and return `short_code`, `qr_payload`, or both, plus agent-facing import prompts
+- `create_transfer.py`: upload a bundle to the configured backend and return `short_code`, `qr_payload`, or both, plus rule-based agent-facing import prompts
 - `fetch_transfer.py`: fetch a bundle from the backend by `transfer_id` or `short_code`
 - `preview_bundle.py`: summarize a bundle before import
 - `generate_qr.py`: produce transfer payload text and optional ASCII QR placeholder output

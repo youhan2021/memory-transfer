@@ -47,18 +47,33 @@ def post_create_transfer(
         return json.loads(response.read().decode("utf-8"))
 
 
+def build_import_prompt(short_code: str | None, transfer_id: str | None) -> str:
+    parts = [
+        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。",
+        "先 preview，再用 upsert 模式导入。",
+    ]
+    if short_code:
+        parts.insert(1, f"短码是 {short_code}。")
+    elif transfer_id:
+        parts.insert(1, f"transfer_id 是 {transfer_id}。")
+    return " ".join(parts)
+
+
 def select_output(payload: dict, output_kind: str) -> dict:
-    short_import_prompt = (
-        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。"
-        f"短码是 {payload['short_code']}。"
-        "先 preview，再用 upsert 模式导入。"
+    short_import_prompt = build_import_prompt(
+        short_code=payload["short_code"],
+        transfer_id=None,
     )
-    transfer_import_prompt = (
-        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。"
-        f"transfer_id 是 {payload['transfer_id']}。"
-        "先 preview，再用 upsert 模式导入。"
+    transfer_import_prompt = build_import_prompt(
+        short_code=None,
+        transfer_id=payload["transfer_id"],
     )
     prompts = {
+        "import_by_short_code": short_import_prompt,
+        "import_by_transfer_id": transfer_import_prompt,
+    }
+    prompt_bundle = {
+        "send_to_target_agent": short_import_prompt,
         "import_by_short_code": short_import_prompt,
         "import_by_transfer_id": transfer_import_prompt,
     }
@@ -67,16 +82,16 @@ def select_output(payload: dict, output_kind: str) -> dict:
             "transfer_id": payload["transfer_id"],
             "qr_payload": payload["qr_payload"],
             "expires_at": payload["expires_at"],
-            "next_prompts": prompts,
+            "next_prompts": prompt_bundle,
         }
     if output_kind == "short":
         return {
             "transfer_id": payload["transfer_id"],
             "short_code": payload["short_code"],
             "expires_at": payload["expires_at"],
-            "next_prompts": prompts,
+            "next_prompts": prompt_bundle,
         }
-    payload["next_prompts"] = prompts
+    payload["next_prompts"] = prompt_bundle
     return payload
 
 
