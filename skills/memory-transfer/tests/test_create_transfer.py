@@ -62,6 +62,5 @@ def test_create_transfer_from_markdown(tmp_path: Path) -> None:
     assert payload["transfer_id"] == "tr_test"
     assert payload["short_code"] == "ABC123"
     assert "qr_payload" not in payload
-    assert payload["next_commands"]["import_by_short_code"].startswith(
-        "python scripts/fetch_transfer.py --short-code ABC123"
-    )
+    assert "ABC123" in payload["next_prompts"]["import_by_short_code"]
+    assert "upsert" in payload["next_prompts"]["import_by_short_code"]

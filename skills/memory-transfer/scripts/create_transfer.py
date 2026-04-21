@@ -48,41 +48,35 @@ def post_create_transfer(
 
 
 def select_output(payload: dict, output_kind: str) -> dict:
-    base_dir = Path(__file__).resolve().parents[1]
-    fetched_bundle_path = base_dir / "dist" / f"fetched-{payload['short_code']}.json"
-    short_import_command = (
-        "python scripts/fetch_transfer.py "
-        f"--short-code {payload['short_code']} "
-        f"--output {fetched_bundle_path} && "
-        f"python scripts/import_memory.py --bundle {fetched_bundle_path} "
-        "--target ./imported-memories.json --mode upsert"
+    short_import_prompt = (
+        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。"
+        f"短码是 {payload['short_code']}。"
+        "先 preview，再用 upsert 模式导入。"
     )
-    transfer_import_command = (
-        "python scripts/fetch_transfer.py "
-        f"--transfer-id {payload['transfer_id']} "
-        f"--output {fetched_bundle_path} && "
-        f"python scripts/import_memory.py --bundle {fetched_bundle_path} "
-        "--target ./imported-memories.json --mode upsert"
+    transfer_import_prompt = (
+        "请用 memory-transfer skill 从服务器拉取并导入这份记忆。"
+        f"transfer_id 是 {payload['transfer_id']}。"
+        "先 preview，再用 upsert 模式导入。"
     )
-    commands = {
-        "import_by_short_code": short_import_command,
-        "import_by_transfer_id": transfer_import_command,
+    prompts = {
+        "import_by_short_code": short_import_prompt,
+        "import_by_transfer_id": transfer_import_prompt,
     }
     if output_kind == "qr":
         return {
             "transfer_id": payload["transfer_id"],
             "qr_payload": payload["qr_payload"],
             "expires_at": payload["expires_at"],
-            "next_commands": commands,
+            "next_prompts": prompts,
         }
     if output_kind == "short":
         return {
             "transfer_id": payload["transfer_id"],
             "short_code": payload["short_code"],
             "expires_at": payload["expires_at"],
-            "next_commands": commands,
+            "next_prompts": prompts,
         }
-    payload["next_commands"] = commands
+    payload["next_prompts"] = prompts
     return payload
 
 

@@ -18,7 +18,7 @@ This skill helps move stable, exportable memories from one agent context to anot
 1. Export from a source bundle or directly from local memory files with `scripts/export_memory.py`
 2. Ask the user whether they want `二维码` / `短码` / `两者都要`
 3. Upload the bundle with `scripts/create_transfer.py`
-4. Return the requested transfer result directly after upload, including a ready-to-run import command
+4. Return the requested transfer result directly after upload, including a ready-to-send import prompt
 5. Optionally preview with `scripts/preview_bundle.py`
 6. Import with `scripts/import_memory.py`
 
@@ -31,7 +31,7 @@ This skill helps move stable, exportable memories from one agent context to anot
 - If there is no existing bundle, do not ask the user to prepare one first; generate a minimal bundle directly from available `.md` or `.txt` memory files
 - When a single local memory note is available, treat it as source material and package it into a bundle automatically
 - When the user wants to transfer, do not stop after local export; ask which transfer output they want, upload to the server, and return the corresponding code immediately
-- After upload, always show the import command, especially the short-code based import command
+- After upload, always show the import prompt, especially the short-code based import prompt
 - If the user does not specify a preference, default to returning both `short_code` and `qr_payload`
 
 ## Files
