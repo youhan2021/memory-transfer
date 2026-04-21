@@ -4,6 +4,8 @@ set -euo pipefail
 REPO_SLUG="${MEMORY_TRANSFER_REPO:-youhan2021/memory-transfer}"
 REPO_REF="${MEMORY_TRANSFER_REF:-main}"
 MODE="copy"
+SERVER_URL="${MEMORY_TRANSFER_SERVER_URL:-}"
+DEFAULT_SERVER_URL="http://127.0.0.1:8000/"
 
 resolve_skills_dir() {
   local openc_law_dir=""
@@ -27,12 +29,14 @@ Usage:
   ./install-skill.sh
   ./install-skill.sh --copy
   ./install-skill.sh --link
+  ./install-skill.sh --server-url <url>
   ./install-skill.sh --ref <git-ref>
   ./install-skill.sh --repo <owner/repo>
 
 Environment:
   MEMORY_TRANSFER_REPO   Override GitHub repo, default: ${REPO_SLUG}
   MEMORY_TRANSFER_REF    Override git ref, default: ${REPO_REF}
+  MEMORY_TRANSFER_SERVER_URL  Preseed the backend server URL for config.env
 
 Notes:
   - copy mode works both locally and from a remote raw GitHub URL
@@ -49,6 +53,10 @@ while [[ $# -gt 0 ]]; do
     --link)
       MODE="link"
       shift
+      ;;
+    --server-url)
+      SERVER_URL="${2:?missing value for --server-url}"
+      shift 2
       ;;
     --ref)
       REPO_REF="${2:?missing value for --ref}"
@@ -75,6 +83,28 @@ LOCAL_SKILL_DIR="${SCRIPT_DIR}/skills/memory-transfer"
 TARGET_ROOT="$(resolve_skills_dir)"
 TARGET_DIR="${TARGET_ROOT}/memory-transfer"
 
+prompt_server_url() {
+  if [[ -n "${SERVER_URL}" ]]; then
+    return
+  fi
+
+  if [[ ! -t 0 ]]; then
+    SERVER_URL="${DEFAULT_SERVER_URL}"
+    return
+  fi
+
+  printf 'MEMORY_TRANSFER_SERVER_URL [%s]: ' "${DEFAULT_SERVER_URL}"
+  read -r input_url
+  SERVER_URL="${input_url:-${DEFAULT_SERVER_URL}}"
+}
+
+write_config_env() {
+  local target_dir="$1"
+  cat > "${target_dir}/config.env" <<EOF
+MEMORY_TRANSFER_SERVER_URL=${SERVER_URL}
+EOF
+}
+
 install_from_local() {
   mkdir -p "${TARGET_ROOT}"
   rm -rf "${TARGET_DIR}"
@@ -85,10 +115,13 @@ install_from_local() {
     cp -R "${LOCAL_SKILL_DIR}" "${TARGET_DIR}"
   fi
 
+  write_config_env "${TARGET_DIR}"
+
   cat <<EOF
 Installed memory-transfer skill to ${TARGET_DIR}
 Install source: local checkout
 Install mode: ${MODE}
+MEMORY_TRANSFER_SERVER_URL: ${SERVER_URL}
 EOF
 }
 
@@ -123,14 +156,18 @@ install_from_remote() {
   mkdir -p "${TARGET_ROOT}"
   rm -rf "${TARGET_DIR}"
   cp -R "${extracted_skill_dir}" "${TARGET_DIR}"
+  write_config_env "${TARGET_DIR}"
 
   cat <<EOF
 Installed memory-transfer skill to ${TARGET_DIR}
 Install source: https://github.com/${REPO_SLUG}
 Install ref: ${REPO_REF}
 Install mode: copy
+MEMORY_TRANSFER_SERVER_URL: ${SERVER_URL}
 EOF
 }
+
+prompt_server_url
 
 if [[ -d "${LOCAL_SKILL_DIR}" ]]; then
   install_from_local

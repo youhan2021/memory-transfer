@@ -29,6 +29,13 @@ Recommended remote install command:
 bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
 ```
 
+The installer will ask for `MEMORY_TRANSFER_SERVER_URL` and write it into the installed skill's `config.env`.
+You can also preseed it:
+
+```bash
+MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```
+
 If you already cloned this repo locally, run:
 
 ```bash

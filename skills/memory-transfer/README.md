@@ -25,6 +25,13 @@ MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/
 bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
 ```
 
+During install, the script will ask for `MEMORY_TRANSFER_SERVER_URL` and save it to `config.env`.
+You can also pass it non-interactively:
+
+```bash
+MEMORY_TRANSFER_SERVER_URL=http://127.0.0.1:8000/ bash <(curl -fsSL https://raw.githubusercontent.com/youhan2021/memory-transfer/main/install-skill.sh)
+```
+
 Supported modes:
 
 ```bash
