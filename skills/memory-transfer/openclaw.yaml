@@ -4,6 +4,7 @@ description: Low-friction memory transfer skill for selective export and import.
 entrypoint: SKILL.md
 scripts:
   export: scripts/export_memory.py
+  transfer: scripts/create_transfer.py
   preview: scripts/preview_bundle.py
   import: scripts/import_memory.py
   qr: scripts/generate_qr.py

@@ -30,6 +30,7 @@ htmlcov/
 .env
 .env.local
 .env.*.local
+skills/memory-transfer/config.env
 
 # Runtime data (transfer bundles, imported memories)
 .data/

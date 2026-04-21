@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from urllib import request
+
+from export_memory import filter_memories, load_source_bundle
+from skill_config import get_server_url
+
+
+def load_bundle(bundle_path: Path) -> dict:
+    return json.loads(bundle_path.read_text(encoding="utf-8"))
+
+
+def build_bundle(args: argparse.Namespace) -> dict:
+    include_types = set(args.types) if args.types else None
+    if args.bundle:
+        bundle = load_bundle(Path(args.bundle).expanduser().resolve())
+    else:
+        bundle = load_source_bundle(Path(args.source).expanduser().resolve())
+    return filter_memories(bundle, include_types=include_types)
+
+
+def post_create_transfer(
+    bundle: dict,
+    ttl_seconds: int,
+    consume_once: bool,
+) -> dict:
+    server_url = get_server_url()
+    endpoint = server_url.rstrip("/") + "/transfer/create"
+    payload = json.dumps(
+        {
+            "bundle": bundle,
+            "ttl_seconds": ttl_seconds,
+            "consume_once": consume_once,
+        }
+    ).encode("utf-8")
+    req = request.Request(
+        endpoint,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with request.urlopen(req) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def select_output(payload: dict, output_kind: str) -> dict:
+    if output_kind == "qr":
+        return {
+            "transfer_id": payload["transfer_id"],
+            "qr_payload": payload["qr_payload"],
+            "expires_at": payload["expires_at"],
+        }
+    if output_kind == "short":
+        return {
+            "transfer_id": payload["transfer_id"],
+            "short_code": payload["short_code"],
+            "expires_at": payload["expires_at"],
+        }
+    return payload
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Upload a memory bundle to the configured server and return QR / short code transfer info."
+    )
+    parser.add_argument("--bundle", help="Existing bundle JSON file")
+    parser.add_argument("--source", help="Source bundle JSON, markdown/text file, or directory")
+    parser.add_argument("--output-kind", choices=["qr", "short", "both"], default="both")
+    parser.add_argument("--ttl-seconds", type=int, default=3600)
+    parser.add_argument("--types", nargs="*", help="Optional whitelist of memory types")
+    parser.add_argument(
+        "--consume-once",
+        dest="consume_once",
+        action="store_true",
+        default=True,
+        help="Mark transfer as one-time consumable (default)",
+    )
+    parser.add_argument(
+        "--keep",
+        dest="consume_once",
+        action="store_false",
+        help="Allow repeated fetch until TTL expiry",
+    )
+    args = parser.parse_args()
+
+    if not args.bundle and not args.source:
+        raise SystemExit("Either --bundle or --source is required.")
+
+    bundle = build_bundle(args)
+    response = post_create_transfer(
+        bundle=bundle,
+        ttl_seconds=args.ttl_seconds,
+        consume_once=args.consume_once,
+    )
+    print(json.dumps(select_output(response, args.output_kind), indent=2))
+
+
+if __name__ == "__main__":
+    main()
