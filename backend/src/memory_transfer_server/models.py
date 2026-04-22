@@ -65,6 +65,11 @@ class TransferLookupRequest(BaseModel):
     short_code: str
 
 
+class TransferFetchCompatRequest(BaseModel):
+    short_code: str | None = None
+    code: str | None = None
+
+
 class TransferLookupResponse(BaseModel):
     transfer_id: str
     short_code: str

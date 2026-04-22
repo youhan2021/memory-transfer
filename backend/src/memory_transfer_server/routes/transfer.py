@@ -6,6 +6,7 @@ from memory_transfer_server.models import (
     TransferConfirmImportResponse,
     TransferCreateRequest,
     TransferCreateResponse,
+    TransferFetchCompatRequest,
     TransferLookupRequest,
     TransferLookupResponse,
 )
@@ -38,6 +39,27 @@ def lookup_transfer(
     store = request.app.state.bundle_store
     try:
         return store.lookup_transfer(payload.short_code)
+    except TransferNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TransferUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+
+
+@router.post("/fetch", response_model=TransferLookupResponse)
+def fetch_transfer_compat(
+    payload: TransferFetchCompatRequest,
+    request: Request,
+) -> TransferLookupResponse:
+    short_code = payload.short_code or payload.code
+    if not short_code:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="short_code or code is required",
+        )
+
+    store = request.app.state.bundle_store
+    try:
+        return store.lookup_transfer(short_code)
     except TransferNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except TransferUnavailableError as exc:

@@ -59,6 +59,19 @@ def test_lookup_returns_preview_only() -> None:
     assert "content" not in str(payload)
 
 
+def test_fetch_compat_alias_returns_preview_only() -> None:
+    app = create_app()
+    with TestClient(app) as client:
+        created = create_transfer(client)
+        response = client.post("/transfer/fetch", json={"code": created["short_code"]})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["short_code"] == created["short_code"]
+    assert payload["preview"]["requires_confirm_phrase"] is True
+    assert "content" not in str(payload)
+
+
 def test_confirm_import_succeeds_with_correct_phrase() -> None:
     app = create_app()
     with TestClient(app) as client:
